@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KESCO AT&C Analysis</title>
+<link rel="icon" type="image/png" href="/kesco_favicon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+  :root{--navy:#1e5aa8;--navy2:#17498c;--brand:#1e5aa8;--accent:#2563eb;--yellow:#f5a623;--yellowdk:#e0930a;
+    --red:#dc2626;--orange:#f26a35;
+    --teal:#1aa87a;--violet:#6d5ae0;--amber:#e0a020;--bg:#eef1f6;--card:#fff;
+    --line:#e5e9f0;--line2:#f2f5f9;--ink:#1a2b45;--ink2:#5b6675;--ink3:#98a2b3;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .topbar{background:linear-gradient(100deg,#1e5aa8,#2264b8);color:#fff;padding:0 30px;display:flex;align-items:center;gap:16px;min-height:76px}
+  .topbar .logotile{background:#fff;border-radius:12px;padding:7px 9px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .topbar .logotile img{height:38px;width:auto;display:block}
+  .topbar .btxt{display:flex;flex-direction:column;line-height:1.25}
+  .topbar .btxt b{font-size:20px;font-weight:800;letter-spacing:-.3px}
+  .topbar .btxt span{font-size:12.5px;opacity:.82;font-weight:400}
+  .hero{max-width:1160px;margin:0 auto;padding:24px 30px 4px}
+  .hero h1{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-0.3px}
+  .hero .tag{color:var(--ink2);font-size:13px;margin-top:3px}
+  .hero h1 .accent{color:var(--accent)}
+  .tabs{max-width:1160px;margin:0 auto;padding:14px 30px 0;display:flex;gap:4px;border-bottom:1px solid var(--line)}
+  .tab{display:flex;align-items:center;gap:8px;padding:11px 18px;font-size:14px;font-weight:600;color:var(--ink3);cursor:pointer;border:none;background:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:.15s}
+  .tab:hover{color:var(--ink2)}
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab .badge{font-size:10px;background:var(--line);color:var(--ink3);padding:2px 7px;border-radius:10px;font-weight:700}
+  .tab.on .badge{background:var(--accent);color:#fff}
+  .tabpane{display:none} .tabpane.on{display:block}
+  .dsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+  .dsi{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+  .dsi .l{font-size:11px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+  .dsi .n{font-size:22px;font-weight:800;color:var(--ink);margin-top:5px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .dsi .s{font-size:11.5px;color:var(--ink3);margin-top:2px}
+  .dgroup{margin:26px 0 14px;display:flex;align-items:center;gap:10px}
+  .dgroup:first-of-type{margin-top:8px}
+  .dglabel{font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .dglabel i{color:var(--accent);font-size:15px}
+  .dgroup::after{content:"";flex:1;height:1px;background:var(--line)}
+  .wrap{max-width:1160px;margin:0 auto;padding:22px 26px 60px}
+  .section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:20px}
+  .shead{padding:16px 22px;color:var(--ink);display:flex;flex-direction:column;align-items:flex-start;gap:3px;border-bottom:1px solid var(--line);background:var(--card)}
+  .shead i{color:var(--accent)}
+  .shead.navy,.shead.orange{background:var(--card);color:var(--ink)}
+  .section{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 3px rgba(30,60,120,.04)}
+  .shead .step{font-size:11px;opacity:.85;font-weight:600}
+  .shead .stitle{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;line-height:1.3}
+  .shead .ssub{font-size:12.5px;font-weight:400;color:var(--ink3);line-height:1.4;padding-left:0}
+  .sbody{padding:18px 20px}
+  .dlgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .dlcard{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .dlcard h3{font-size:15px;font-weight:700}
+  .dlcard p{font-size:12.5px;color:var(--ink2);flex:1}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;color:#fff;border:none;padding:10px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;text-decoration:none}
+  .btn.navy{background:var(--brand)} .btn.navy:hover{background:var(--navy2)}
+  .btn.orange{background:var(--yellow);color:var(--ink)} .btn.orange:hover{background:var(--yellowdk)}
+  .btn.teal{background:var(--teal)} .btn.teal:hover{background:#159068}
+  .btn:disabled,.btn.off{opacity:.5;pointer-events:none}
+  .drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:.15s;background:var(--bg)}
+  .drop:hover,.drop.over{border-color:var(--navy);background:#eaf0fb}
+  .drop .di{font-size:30px;color:var(--navy)}
+  .drop h4{font-size:14px;font-weight:700;margin:6px 0 2px}
+  .drop p{font-size:12px;color:var(--ink2)}
+  .drop .pick{color:var(--navy);font-weight:700;text-decoration:underline}
+  .analyzebar{margin-top:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .analyzemsg{font-size:12.5px;color:var(--ink2)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin-bottom:24px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:12px;padding:20px 20px 18px;transition:.15s;box-shadow:0 1px 3px rgba(30,60,120,.05)}
+  .kpi:hover{box-shadow:0 6px 18px rgba(30,60,120,.09)}
+  .kpi.red{border-top-color:var(--red)}
+  .kpi .lab{color:var(--ink3);font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+  .kpi .val{font-size:32px;font-weight:800;margin:10px 0 8px;letter-spacing:-1px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .kpi.red .val{color:var(--red)}
+  .kpi .val small{font-size:14px;color:var(--ink3);font-weight:500}
+  .kpi .cap{color:var(--ink3);font-size:11.5px}
+  .kpi.red .val{color:var(--red)} .kpi.orange .val{color:var(--orange)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .card.full{grid-column:1/-1}
+  .chead{padding:14px 18px 4px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .chead i{font-size:16px;color:var(--ink3)}
+  .chead .right{margin-left:auto}
+  .chead select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;outline:none}
+  .csub{padding:0 18px;font-size:12px;color:var(--ink3);margin-bottom:6px}
+  .cbody{padding:8px 18px 18px}
+  .chartbox{position:relative;width:100%;height:260px}
+  .chartbox.tall{height:420px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line2)}
+  th{color:var(--ink3);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;cursor:pointer}
+  th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+  th:hover{color:var(--navy)}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:var(--bg)}
+  .search{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:9px;font-size:12.5px;margin-bottom:10px;outline:none;background:var(--bg)}
+  .foot{color:var(--ink3);font-size:12px;margin-top:4px;line-height:1.7;background:var(--card);border-radius:14px;padding:18px 20px;border:1px solid var(--line)}
+  .foot b{color:var(--ink2)}
+  .warn{background:#fff9ec;border:1px solid #f2e2b0;border-radius:12px;padding:13px 16px;font-size:12.5px;color:#8a6d1a;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start}
+  .warn i{font-size:17px}
+  .dashwait{text-align:center;padding:60px 20px;color:var(--ink3)}
+  .dashwait i{font-size:42px;color:var(--line)}
+  .dashwait p{margin-top:10px;font-size:14px}
+  @media(max-width:800px){.grid,.dlgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script>
+// ====== BACKEND API URL ======
+// After deploying the backend to Hugging Face, paste your Space URL here.
+// It looks like: https://YOURNAME-kesco-atc-api.hf.space
+const API_BASE = "https://abhay9984-kesco-atc-api.hf.space";
+</script>
+  <div class="topbar">
+    <span class="logotile"><img src="/kesco_logo_black.png" alt="KESCO"></span>
+    <span class="btxt"><b>AT&amp;C Loss &amp; Revenue Analysis</b><span>KESCO — Kanpur Electricity Supply Company</span></span>
+  </div>
+  <div class="hero">
+    <h1>Revenue Loss &amp; <span class="accent">AT&amp;C Gap</span> Analysis</h1>
+    <div class="tag">Download the templates, fill your data, upload, and get the loss analysis instantly.</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" id="tabUpload" onclick="switchTab('upload')"><i class="ti ti-database"></i> Data &amp; Reports</button>
+    <button class="tab" id="tabDash" onclick="switchTab('dash')"><i class="ti ti-chart-histogram"></i> Dashboard</button>
+  </div>
+
+  <div class="wrap">
+
+    <!-- ===== TAB 1: UPLOAD & ANALYSE ===== -->
+    <div class="tabpane on" id="paneUpload">
+    <div class="section">
+      <div class="shead"><span class="stitle"><i class="ti ti-download"></i> Data Templates</span><span class="ssub">Download the required formats, fill in your data, and save as CSV.</span></div>
+      <div class="sbody"><div class="dlgrid">
+        <div class="dlcard">
+          <h3><i class="ti ti-users"></i> Consumer Data Template</h3>
+          <p>Per-consumer billing data — one row per consumer. Main input for loss &amp; cause analysis.</p>
+          <button class="btn navy" onclick="dlConsumer()"><i class="ti ti-file-download"></i> Download consumer template</button>
+        </div>
+        <div class="dlcard">
+          <h3><i class="ti ti-bolt"></i> Energy Report Template</h3>
+          <p>Feeder-level energy input — one row per feeder. Provides the billing-efficiency denominator.</p>
+          <button class="btn orange" onclick="dlEnergy()"><i class="ti ti-file-download"></i> Download energy template</button>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="section">
+      <div class="shead"><span class="stitle"><i class="ti ti-upload"></i> Upload &amp; Analyse</span><span class="ssub">Upload your consumer and energy files to generate the analysis.</span></div>
+      <div class="sbody">
+        <div class="dlgrid">
+          <div class="drop" id="dropC" data-type="consumer">
+            <div class="di"><i class="ti ti-file-upload"></i></div>
+            <h4 id="labelC">Consumer data CSV</h4>
+            <p>drop or <span class="pick">choose file</span></p>
+            <input type="file" class="fin" accept=".csv" style="display:none">
+          </div>
+          <div class="drop" id="dropE" data-type="energy">
+            <div class="di"><i class="ti ti-file-upload"></i></div>
+            <h4 id="labelE">Energy report CSV</h4>
+            <p>drop or <span class="pick">choose file</span></p>
+            <input type="file" class="fin" accept=".csv" style="display:none">
+          </div>
+        </div>
+        <div class="analyzebar">
+          <button class="btn teal off" id="analyzeBtn" onclick="runAnalysis()"><i class="ti ti-player-play"></i> Analyse &amp; view dashboard</button>
+          <span class="analyzemsg" id="analyzeMsg">Upload both files to enable analysis.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Post-analysis: data summary + coverage + downloads (Tab 1) -->
+    <div id="dataResults" style="display:none">
+      <div class="section">
+        <div class="shead"><span class="stitle"><i class="ti ti-circle-check"></i> Data Summary</span><span class="ssub">Overview of the uploaded data and feeder matching.</span></div>
+        <div class="sbody">
+          <div class="dsum" id="dataSummary"></div>
+          <div class="warn" id="coverageBox" style="display:none;margin-top:14px"></div>
+          <div class="warn" id="warnBox" style="display:none;margin-top:10px"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="shead"><span class="stitle"><i class="ti ti-file-download"></i> Download Report</span><span class="ssub">Export the full analysis as Excel, PDF, or CSV.</span></div>
+        <div class="sbody">
+          <div class="dlbar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input id="repPeriod" type="text" placeholder="Period (optional, e.g. March 2026)" style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;width:220px">
+            <select id="repLevel" style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+              <option value="summary">Summary</option>
+              <option value="detailed">Detailed</option>
+            </select>
+            <select id="repFmt" style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+              <option value="xlsx">Excel (.xlsx)</option>
+              <option value="pdf">PDF</option>
+              <option value="csv">CSV</option>
+            </select>
+            <button id="repBtn" class="btn navy" style="padding:8px 18px"><i class="ti ti-download"></i> Download</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /paneUpload -->
+
+    <!-- ===== TAB 2: DASHBOARD ===== -->
+    <div class="tabpane" id="paneDash">
+    <div class="section">
+      <div class="shead"><span class="stitle"><i class="ti ti-chart-histogram"></i> Analysis Dashboard</span><span class="ssub">AT&amp;C loss, billing &amp; collection efficiency, and revenue insights.</span></div>
+      <div class="sbody" style="padding:18px">
+        <div class="dashwait" id="dashwait"><i class="ti ti-file-analytics"></i><p>Upload your files in the <b>Upload &amp; Analyse</b> tab to generate the dashboard.</p></div>
+        <div id="dash" style="display:none">
+          <div class="kpis" id="kpis"></div>
+          <div class="grid">
+            <div class="card full">
+              <div class="chead"><i class="ti ti-chart-bar"></i> AT&amp;C loss by division
+                <span class="right"><select id="divSort"><option value="atc">Sort by AT&C</option><option value="coll">Sort by collection</option></select></span></div>
+              <div class="csub">Share of energy lost per division</div>
+              <div class="cbody"><div class="chartbox tall"><canvas id="divChart" role="img" aria-label="AT&C loss by division"></canvas></div></div>
+            </div>
+            <div class="card full">
+              <div class="chead"><i class="ti ti-receipt"></i> Outstanding dues
+                <span class="right"><select id="outDim">
+                  <option value="by_division">By division</option><option value="by_status">By connection status</option>
+                  <option value="by_load_band">By load band</option><option value="by_feeder">By feeder</option></select></span></div>
+              <div class="csub">Total unpaid dues by the selected dimension</div>
+              <div class="cbody"><div class="chartbox tall"><canvas id="outChart" role="img" aria-label="Outstanding dues"></canvas></div></div>
+            </div>
+            <div class="card"><div class="chead"><i class="ti ti-map-pin"></i> Division detail</div>
+              <div class="cbody"><div style="overflow-x:auto;max-height:330px;overflow-y:auto"><table id="divTable"></table></div></div></div>
+            <div class="card"><div class="chead"><i class="ti ti-bolt"></i> Highest-loss feeders</div>
+              <div class="cbody"><input class="search" id="feedSearch" placeholder="Search feeder…">
+                <div style="overflow-x:auto;max-height:330px;overflow-y:auto"><table id="feedTable"></table></div></div></div>
+            <div class="card"><div class="chead"><i class="ti ti-alert-octagon"></i> Loss cause contribution</div>
+              <div class="cbody"><div class="chartbox"><canvas id="causeChart" role="img" aria-label="Loss causes"></canvas></div></div></div>
+            <div class="card"><div class="chead"><i class="ti ti-credit-card"></i> Payment mode mix</div>
+              <div class="cbody"><div class="chartbox"><canvas id="payChart" role="img" aria-label="Payment modes"></canvas></div></div></div>
+            <div class="card"><div class="chead"><i class="ti ti-tool"></i> Metering failure reasons</div>
+              <div class="cbody"><div class="chartbox"><canvas id="reasonChart" role="img" aria-label="Metering exceptions"></canvas></div></div></div>
+            <div class="card"><div class="chead"><i class="ti ti-users"></i> Theft suspects by division</div>
+              <div class="cbody"><div class="chartbox"><canvas id="theftChart" role="img" aria-label="Theft by division"></canvas></div></div></div>
+          </div>
+          <div class="foot" id="foot" style="margin-top:18px"></div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /paneDash -->
+  </div>
+
+<script>
+const CONSUMER_COLS=["Division","Sub Division","Feeder","Feeder Code","A/c No","Name","Address","Category","Supply Type","Mobile No","Status","Bill Basis","Total Bill Amount (Rs)","Last Paid Date","Last Paid Amount (Rs)","Load","Load Unit","Current Assessment (Rs)","Bill Date","Current Month Consumption (kWh)","Supply Voltage (kV)","Connection Type","Meter Status","Meter Exception Reason","Arrear (Rs)","Total Outstanding (Rs)","LPSC (Rs)","Payment Mode"];
+const CONSUMER_EX=["DIV501011","SDO5010111","JHAKARKATI BRIDGE_51331110026JHA","51331110026JHA","4687460000","[name]","[address]","LMV-1","10","[mobile]","In Service","MRB","2500","2026-03-10","2400","2","KW","2500","2026-03-01","320","0.230","POSTPAID","N","","0","2500","0","CASH"];
+const ENERGY_COLS=["Division","Feeder","Feeder Code","dt","Feeder Consumption (kWh)"];
+const ENERGY_EX=["JAJMAU","150 FT ROAD","51333110071FTR","--","1112936"];
+const REQUIRED={consumer:["Division","Feeder","A/c No","Supply Type","Status","Bill Basis","Total Bill Amount (Rs)","Last Paid Amount (Rs)","Current Assessment (Rs)","Current Month Consumption (kWh)","Supply Voltage (kV)","Connection Type","Meter Status","Arrear (Rs)","Total Outstanding (Rs)","LPSC (Rs)","Payment Mode"],energy:["Division","Feeder","Feeder Consumption (kWh)"]};
+const norm=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+function csvCell(v){v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function dl(name,cols,ex){const rows=[cols.map(csvCell).join(","),ex.map(csvCell).join(",")];
+  const b=new Blob(["\ufeff"+rows.join("\r\n")],{type:"text/csv;charset=utf-8;"});const u=URL.createObjectURL(b);
+  const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
+function dlConsumer(){dl("KESCO_Consumer_Template.csv",CONSUMER_COLS,CONSUMER_EX);}
+function dlEnergy(){dl("KESCO_Energy_Template.csv",ENERGY_COLS,ENERGY_EX);}
+
+let FILES={consumer:null,energy:null};
+function handleFile(file,type){
+  if(!file)return;const label=document.getElementById(type==="consumer"?"labelC":"labelE");
+  if(!/\.csv$/i.test(file.name)){label.textContent="Not a CSV file";FILES[type]=null;updateBtn();return;}
+  Papa.parse(file,{skipEmptyLines:true,preview:1,complete:r=>{
+    const headers=r.data[0]||[];const have=headers.map(norm);
+    const missing=REQUIRED[type].filter(c=>!have.includes(norm(c)));
+    if(missing.length){FILES[type]=null;label.textContent="Missing: "+missing.slice(0,2).join(", ")+(missing.length>2?"…":"");}
+    else{FILES[type]={file};label.textContent="✓ "+file.name;}
+    updateBtn();
+  }});
+}
+function updateBtn(){const b=document.getElementById("analyzeBtn"),m=document.getElementById("analyzeMsg");
+  if(FILES.consumer&&FILES.energy){b.classList.remove("off");m.textContent="Both files ready — click to run.";}
+  else{b.classList.add("off");const need=[!FILES.consumer?"consumer":null,!FILES.energy?"energy":null].filter(Boolean);
+    m.textContent="Waiting for "+need.join(" + ")+" file"+(need.length>1?"s":"")+".";}}
+function runAnalysis(){
+  const b=document.getElementById("analyzeBtn"),m=document.getElementById("analyzeMsg");
+  if(!FILES.consumer||!FILES.energy)return;
+  b.classList.add("off");b.innerHTML='<i class="ti ti-loader"></i> Analysing…';m.textContent="Running the pipeline…";
+  const fd=new FormData();fd.append("consumer",FILES.consumer.file);fd.append("energy",FILES.energy.file);fd.append("month","Data snapshot");
+  fetch(API_BASE+"/analyze",{method:"POST",body:fd}).then(r=>r.json()).then(d=>{
+    b.classList.remove("off");b.innerHTML='<i class="ti ti-player-play"></i> Analyse & view dashboard';
+    if(d.ok){DATA=d.data;MONTH=DATA.summary[0].month;renderDash();switchTab('dash');m.textContent="Done — dashboard ready.";
+      document.getElementById("dash").scrollIntoView({behavior:"smooth",block:"start"});}
+    else{m.innerHTML='<span style="color:#c0271f">Error: '+(d.error||"failed")+
+      (d.missing_consumer&&d.missing_consumer.length?' (consumer: '+d.missing_consumer.join(", ")+')':'')+
+      (d.missing_energy&&d.missing_energy.length?' (energy: '+d.missing_energy.join(", ")+')':'')+'</span>';}
+  }).catch(e=>{b.classList.remove("off");b.innerHTML='<i class="ti ti-player-play"></i> Analyse & view dashboard';
+    m.innerHTML='<span style="color:#c0271f">Server error: '+e.message+'</span>';});
+}
+["dropC","dropE"].forEach(id=>{const z=document.getElementById(id),t=z.dataset.type,inp=z.querySelector(".fin");
+  z.addEventListener("click",()=>inp.click());inp.addEventListener("change",e=>handleFile(e.target.files[0],t));
+  ["dragenter","dragover"].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add("over");}));
+  ["dragleave","drop"].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove("over");}));
+  z.addEventListener("drop",e=>{e.preventDefault();handleFile(e.dataTransfer.files[0],t);});});
+
+const C={navy:"#163a8a",red:"#e11d2a",orange:"#f26a35",teal:"#1aa87a",violet:"#6d5ae0",amber:"#e0a020",ink2:"#5b6675",ink3:"#8a94a3",line:"#e3e7ec"};
+let DATA=null,MONTH=null,divSort="atc",outDim="by_division",feedSort={key:"billing_eff",dir:1},feedFilter="";
+
+function switchTab(which){
+  const isU = which==="upload";
+  document.getElementById("tabUpload").classList.toggle("on",isU);
+  document.getElementById("tabDash").classList.toggle("on",!isU);
+  document.getElementById("paneUpload").classList.toggle("on",isU);
+  document.getElementById("paneDash").classList.toggle("on",!isU);
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+document.getElementById("repBtn").onclick=async function(){
+  if(!DATA){alert("Run an analysis first.");return;}
+  const btn=this, fmt=document.getElementById("repFmt").value, level=document.getElementById("repLevel").value, period=document.getElementById("repPeriod").value.trim();
+  const old=btn.textContent; btn.textContent="Preparing…"; btn.disabled=true;
+  try{
+    const res=await fetch(API_BASE+"/download-report",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({data:DATA,format:fmt,level:level,period:period})});
+    if(!res.ok){const e=await res.json().catch(()=>({error:"Download failed"}));throw new Error(e.error||"Download failed");}
+    const blob=await res.blob();
+    const cd=res.headers.get("Content-Disposition")||"";
+    const match=cd.match(/filename=([^;]+)/);
+    const fname=match?match[1].trim():`KESCO_ATC_${level}.${fmt}`;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download=fname; document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+  }catch(err){alert("Could not generate report: "+err.message);}
+  finally{btn.textContent=old; btn.disabled=false;}
+};
+let divChart,outChart,causeChart,payChart,reasonChart,theftChart;
+const pct=v=>(v===""||v==null||isNaN(v))?"—":(+v).toFixed(1)+"%";
+const num=v=>(v===""||v==null||isNaN(v))?"—":Math.round(+v).toLocaleString();
+const mu=v=>(v==null||isNaN(v))?"0.0":(+v).toFixed(1);
+const cr=v=>(v==null||isNaN(v))?"0":(+v).toLocaleString(undefined,{maximumFractionDigits:2});
+const lossColor=v=>v>=55?"#e11d2a":v>=40?"#f26a35":v>=28?"#e0a020":"#1aa87a";
+const barVal={id:"barVal",afterDatasetsDraw(ch,a,o){if(!o||!o.on)return;const{ctx}=ch;ctx.save();
+  ctx.font="600 11px sans-serif";ctx.fillStyle="#8a94a3";ctx.textBaseline="middle";
+  ch.getDatasetMeta(0).data.forEach((b,i)=>{const v=ch.data.datasets[0].data[i];if(v==null)return;ctx.textAlign="left";ctx.fillText(o.fmt?o.fmt(v):v,b.x+7,b.y);});ctx.restore();}};
+Chart.register(barVal);
+const bo=x=>Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:500}},x);
+function kpis(){const s=DATA.summary[0];const cards=[
+  {lab:'<i class="ti ti-alert-triangle"></i> AT&C loss',v:pct(s.atc_loss_pct),cls:"red"},
+  {lab:'<i class="ti ti-file-invoice"></i> Billing eff',v:pct(s.billing_eff_pct)},
+  {lab:'<i class="ti ti-cash"></i> Collection eff',v:pct(s.collection_eff_pct)},
+  {lab:'<i class="ti ti-plug"></i> Energy input',v:mu(s.input_matched_mu)+' <small>MU</small>',cls:"orange"},
+  {lab:'<i class="ti ti-user-x"></i> Theft suspects',v:num(s.theft_suspects)},
+  {lab:'<i class="ti ti-receipt"></i> Outstanding',v:'₹'+cr(s.outstanding_cr)+' <small>cr</small>',cls:"red"}];
+  document.getElementById("kpis").innerHTML=cards.map(c=>`<div class="kpi ${c.cls||''}"><div class="lab">${c.lab}</div><div class="val">${c.v}</div></div>`).join("");}
+function divCh(){const rows=[...DATA.months[MONTH].divisions];
+  rows.sort((a,b)=>divSort==="atc"?(b.atc_loss||0)-(a.atc_loss||0):(a.coll_eff||0)-(b.coll_eff||0));
+  if(divChart)divChart.destroy();
+  divChart=new Chart(document.getElementById("divChart"),{type:"bar",data:{labels:rows.map(r=>r.div_name),datasets:[{data:rows.map(r=>divSort==="atc"?r.atc_loss:r.coll_eff),backgroundColor:rows.map(r=>divSort==="atc"?lossColor(r.atc_loss):(r.coll_eff<50?"#e11d2a":r.coll_eff<70?"#f26a35":"#1aa87a")),borderRadius:5,barThickness:15}]},
+    options:bo({indexAxis:"y",layout:{padding:{right:46}},scales:{x:{grid:{color:C.line},ticks:{color:C.ink3,callback:v=>v+"%"},max:108,beginAtZero:true},y:{grid:{display:false},ticks:{color:C.ink2,font:{size:11}}}},plugins:{legend:{display:false},barVal:{on:true,fmt:v=>(v||0).toFixed(1)+"%"},tooltip:{backgroundColor:"#1f2733",padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.parsed.x.toFixed(1)}%`}}}})});}
+function outCh(){let rows=[...DATA.months[MONTH].outstanding[outDim]].sort((a,b)=>(b.dues_cr||0)-(a.dues_cr||0));
+  if(outDim==="by_feeder") rows=rows.slice(0,10);
+  if(outChart)outChart.destroy();
+  outChart=new Chart(document.getElementById("outChart"),{type:"bar",data:{labels:rows.map(r=>r.name),datasets:[
+    {label:"Dues",data:rows.map(r=>r.dues_cr),backgroundColor:C.red,borderRadius:4,barPercentage:0.9,categoryPercentage:0.8},
+    {label:"Credits",data:rows.map(r=>r.credits_cr),backgroundColor:C.teal,borderRadius:4,barPercentage:0.9,categoryPercentage:0.8}]},
+    options:bo({indexAxis:"y",layout:{padding:{right:20}},scales:{x:{grid:{color:C.line},ticks:{color:C.ink3,callback:v=>"₹"+v},beginAtZero:true},y:{grid:{display:false},ticks:{color:C.ink2,font:{size:11}}}},plugins:{legend:{display:true,position:"top",align:"end",labels:{color:C.ink2,boxWidth:12,font:{size:11.5},usePointStyle:true,pointStyle:"circle",padding:12}},tooltip:{backgroundColor:"#1f2733",padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ₹${cr(c.parsed.x)} cr`}}}})});}
+function divTab(){const rows=[...DATA.months[MONTH].divisions].sort((a,b)=>(b.atc_loss||0)-(a.atc_loss||0));
+  let h=`<thead><tr><th>Division</th><th class="num">Bill%</th><th class="num">Coll%</th><th class="num">AT&C%</th><th class="num">Theft</th></tr></thead><tbody>`;
+  h+=rows.map(r=>`<tr><td>${r.div_name}</td><td class="num">${pct(r.billing_eff)}</td><td class="num">${pct(r.coll_eff)}</td><td class="num" style="color:${lossColor(r.atc_loss)};font-weight:600">${pct(r.atc_loss)}</td><td class="num">${num(r.theft_suspects)}</td></tr>`).join("");
+  document.getElementById("divTable").innerHTML=h+"</tbody>";}
+function feedTab(){let rows=[...DATA.months[MONTH].feeders];if(feedFilter)rows=rows.filter(r=>(r.feeder||"").toLowerCase().includes(feedFilter));
+  rows.sort((a,b)=>((a[feedSort.key]>b[feedSort.key]?1:-1)*feedSort.dir));rows=rows.slice(0,20);
+  const ar=k=>feedSort.key===k?(feedSort.dir<0?" \u2193":" \u2191"):"";
+  let h=`<thead><tr><th onclick="sf('feeder')">Feeder${ar('feeder')}</th><th class="num" onclick="sf('billing_eff')">Bill%${ar('billing_eff')}</th><th class="num" onclick="sf('theft_suspects')">Theft${ar('theft_suspects')}</th></tr></thead><tbody>`;
+  h+=rows.map(r=>`<tr><td>${r.feeder}${r.input_under_recorded?' <span style="font-size:10px;color:#b5651d">\u26a0</span>':''}</td><td class="num">${pct(r.billing_eff)}</td><td class="num">${num(r.theft_suspects)}</td></tr>`).join("");
+  document.getElementById("feedTable").innerHTML=h+"</tbody>";}
+window.sf=k=>{if(feedSort.key===k)feedSort.dir*=-1;else feedSort={key:k,dir:k==="feeder"?1:-1};feedTab();};
+function causeCh(){const c=DATA.causes[0];const items=[["Theft suspects",c.theft_suspects,C.red],["No meter record",c.no_meter,C.orange],["Estimated bills",c.estimated_bills,C.violet],["Faulty meters",c.faulty_meters,C.teal]];
+  if(causeChart)causeChart.destroy();
+  causeChart=new Chart(document.getElementById("causeChart"),{type:"bar",data:{labels:items.map(i=>i[0]),datasets:[{data:items.map(i=>i[1]),backgroundColor:items.map(i=>i[2]),borderRadius:5,barThickness:22}]},
+    options:bo({indexAxis:"y",layout:{padding:{right:54}},scales:{x:{grid:{color:C.line},ticks:{color:C.ink3,callback:v=>v>=1000?(v/1000)+"k":v},beginAtZero:true},y:{grid:{display:false},ticks:{color:C.ink2,font:{size:11.5}}}},plugins:{legend:{display:false},barVal:{on:true,fmt:v=>v>=1000?(v/1000).toFixed(0)+"k":v},tooltip:{backgroundColor:"#1f2733",padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.parsed.x.toLocaleString()} consumers`}}}})});}
+function payCh(){const d=DATA.months[MONTH].payment_modes.slice(0,7);const cols=[C.navy,C.teal,C.orange,C.violet,C.red,C.amber,"#9aa4b2"];
+  if(payChart)payChart.destroy();
+  payChart=new Chart(document.getElementById("payChart"),{type:"doughnut",data:{labels:d.map(r=>r.mode),datasets:[{data:d.map(r=>r.count),backgroundColor:cols,borderColor:"#fff",borderWidth:2,hoverOffset:6}]},
+    options:bo({cutout:"62%",plugins:{legend:{position:"right",labels:{color:C.ink2,boxWidth:11,font:{size:11.5},padding:9,usePointStyle:true,pointStyle:"circle"}},tooltip:{backgroundColor:"#1f2733",padding:10,cornerRadius:8}}})});}
+function reasonCh(){const d=(DATA.months[MONTH].exception_reasons||[]).slice(0,6);if(reasonChart)reasonChart.destroy();
+  if(!d.length){document.getElementById("reasonChart").parentElement.innerHTML='<p style="color:#8a94a3;font-size:12.5px;text-align:center;padding:50px 0">No metering exception data</p>';return;}
+  reasonChart=new Chart(document.getElementById("reasonChart"),{type:"bar",data:{labels:d.map(r=>r.reason),datasets:[{data:d.map(r=>r.count),backgroundColor:C.orange,borderRadius:5,barThickness:17,hoverBackgroundColor:C.red}]},
+    options:bo({indexAxis:"y",layout:{padding:{right:50}},scales:{x:{grid:{color:C.line},ticks:{color:C.ink3,callback:v=>v>=1000?(v/1000)+"k":v},beginAtZero:true},y:{grid:{display:false},ticks:{color:C.ink2,font:{size:11}}}},plugins:{legend:{display:false},barVal:{on:true,fmt:v=>v>=1000?(v/1000).toFixed(0)+"k":v},tooltip:{backgroundColor:"#1f2733",padding:10,cornerRadius:8}}})});}
+function theftCh(){const rows=[...(DATA.months[MONTH].causes_by_division||[])].sort((a,b)=>b.theft_suspects-a.theft_suspects).slice(0,8);if(theftChart)theftChart.destroy();
+  if(!rows.length){document.getElementById("theftChart").parentElement.innerHTML='<p style="color:#8a94a3;font-size:12.5px;text-align:center;padding:50px 0">No division cause data</p>';return;}
+  theftChart=new Chart(document.getElementById("theftChart"),{type:"bar",data:{labels:rows.map(r=>r.div_name),datasets:[{data:rows.map(r=>r.theft_suspects),backgroundColor:C.navy,borderRadius:5,barThickness:16,hoverBackgroundColor:C.red}]},
+    options:bo({indexAxis:"y",layout:{padding:{right:44}},scales:{x:{grid:{color:C.line},ticks:{color:C.ink3},beginAtZero:true},y:{grid:{display:false},ticks:{color:C.ink2,font:{size:11}}}},plugins:{legend:{display:false},barVal:{on:true,fmt:v=>(v||0).toLocaleString()},tooltip:{backgroundColor:"#1f2733",padding:10,cornerRadius:8}}})});}
+function foot(){const s=DATA.summary[0];
+  const w=document.getElementById("warnBox");
+  if(s.feeders_input_under_recorded>0){w.style.display="flex";w.innerHTML=`<i class="ti ti-alert-triangle"></i><span><b>${s.feeders_input_under_recorded} feeder(s)</b> show billed energy exceeding recorded input — billing efficiency capped at 100%. The energy report may be missing input for some feeders (e.g. HT). Provide complete feeder input for exact results.</span>`;}
+  else{w.style.display="none";}
+  // Data coverage banner — only if something didn't match
+  const mr=s.match_report;
+  const cb=document.getElementById("coverageBox");
+  if(mr && (mr.energy_no_consumers>0 || mr.consumers_no_input>0)){
+    cb.style.display="flex";
+    let parts=[`<b>${num(mr.matched)} of ${num(mr.energy_feeders)}</b> energy feeders matched to consumers by code.`];
+    if(mr.energy_no_consumers>0) parts.push(`${num(mr.energy_no_consumers)} energy feeder(s) had no consumer data (likely dedicated/bulk feeders).`);
+    if(mr.consumers_no_input>0) parts.push(`${num(mr.consumers_no_input)} consumer feeder(s) had no energy input — their billed energy isn't included in billing efficiency.`);
+    cb.innerHTML=`<i class="ti ti-info-circle"></i><span><b>Data coverage.</b> ${parts.join(" ")}</span>`;
+  } else { cb.style.display="none"; }
+  document.getElementById("foot").innerHTML=`<b>Methodology.</b> Billing eff = energy billed ÷ feeder input (matched by code, capped at 100%). Collection eff = current collection ÷ current assessment. AT&C = (1 − billing × collection) × 100. <b>${num(s.consumers)}</b> consumers · outlier-capped · HT included.`;}
+function dataSummary(){const s=DATA.summary[0];const mr=s.match_report||{};
+  const nDiv=(DATA.months[MONTH].divisions||[]).length;
+  const items=[
+    {l:"Consumers",n:num(s.consumers),s:"records analysed"},
+    {l:"Divisions",n:nDiv,s:"in the data"},
+    {l:"Feeders matched",n:`${num(mr.matched||0)}/${num(mr.energy_feeders||0)}`,s:"by feeder code"},
+    {l:"Energy input",n:s.input_matched_mu,s:"MU matched"},
+  ];
+  document.getElementById("dataSummary").innerHTML=items.map(i=>
+    `<div class="dsi"><div class="l">${i.l}</div><div class="n">${i.n}</div><div class="s">${i.s}</div></div>`).join("");
+  document.getElementById("dataResults").style.display="block";}
+function renderDash(){document.getElementById("dashwait").style.display="none";document.getElementById("dash").style.display="block";
+  kpis();divCh();outCh();divTab();feedTab();causeCh();payCh();reasonCh();theftCh();foot();dataSummary();}
+document.getElementById("divSort").onchange=e=>{divSort=e.target.value;divCh();};
+document.getElementById("outDim").onchange=e=>{outDim=e.target.value;outCh();};
+document.getElementById("feedSearch").oninput=e=>{feedFilter=e.target.value.toLowerCase();feedTab();};
+</script>
+</body>
+</html>
