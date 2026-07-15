@@ -71,7 +71,7 @@ screenshots/        Upload page and dashboard screenshots (used in this README)
 ## Try it
 
 1. Open the live demo link above
-2. Upload the sample files from `demo-data/`
+2. Upload the sample files from [`demo-data/`](./demo-data)
 3. Explore the dashboard — KPIs, division/feeder tables, outstanding dues, loss causes
 4. Download a summary or detailed report (XLSX/PDF/CSV)
 
